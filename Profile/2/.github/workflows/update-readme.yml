@@ -1,0 +1,48 @@
+name: Update README with greeting (BRT)
+
+on:
+  schedule:
+      - cron: '0 6,12,18,23 * * *' # Executa às 06:00, 12:00, 18:00 e 23:00 todos os dias
+  workflow_dispatch:  # Permite execução manual
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v2
+
+    - name: Get current hour in BRT (Brazil)
+      id: time
+      run: |
+        TZ="America/Sao_Paulo"  # Define o fuso horário de Brasília (BRT)
+        HOUR=$(TZ=$TZ date +"%H")  # Pega a hora atual no horário de Brasília
+        echo "hour_brt=$HOUR" >> $GITHUB_ENV  # Define o valor da hora no ambiente do GitHub Actions
+
+    - name: Generate greeting based on BRT time
+      id: greeting
+      run: |
+        HOUR=${{ env.hour_brt }}
+
+        if [ $HOUR -ge 6 ] && [ $HOUR -lt 12 ]; then
+          echo "GREETING=Bom dia" >> $GITHUB_ENV
+        elif [ $HOUR -ge 12 ] && [ $HOUR -lt 18 ]; then
+          echo "GREETING=Boa tarde" >> $GITHUB_ENV
+        elif [ $HOUR -ge 18 ] && [ $HOUR -lt 24 ]; then
+          echo "GREETING=Boa noite" >> $GITHUB_ENV
+        else
+          echo "GREETING=Boa madrugada" >> $GITHUB_ENV
+        fi
+
+    - name: Update README.md
+      run: |
+        sed -i "s|<!-- GREETING -->|${{ env.GREETING }}|" README.md
+
+    - name: Commit changes
+      run: |
+        git config --local user.email "rodrigo.vilemen@hotmail.com"
+        git config --local user.name "r-vilemen"
+        git add README.md
+        git commit -m "update: readme.md" || echo "No changes to commit"
+        git push
